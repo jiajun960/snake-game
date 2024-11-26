@@ -1,131 +1,134 @@
-﻿import React, { createContext, useContext, useState, useCallback } from 'react';
-import { Snake, Position } from '../types/game';
-import { createInitialSnake, generateFood, moveSnake, checkCollision, hasEatenFood } from '../utils/gameUtils';
+﻿import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
+import { Direction, GameState, Position } from "../types/game";
+import { createBoard, getNextHeadPosition, isValidMove, hasSnakeCollided } from "../utils/gameUtils";
 
-interface GameState {
+interface GameContextProps {
+  board: GameState[][];
   score: number;
-  isPlaying: boolean;
-  isPaused: boolean;
-  difficulty: 'easy' | 'medium' | 'hard';
-  snake: Snake;
-  food: Position;
   highScore: number;
-}
-
-interface GameContextType {
-  gameState: GameState;
+  gameStarted: boolean;
+  gamePaused: boolean;
+  gameOver: boolean;
   startGame: () => void;
   pauseGame: () => void;
-  endGame: () => void;
-  setDifficulty: (difficulty: GameState['difficulty']) => void;
-  setDirection: (direction: Snake['direction']) => void;
-  updateGame: () => void;
+  resetGame: () => void;
+  changeDirection: (direction: Direction) => void;
 }
 
-const GameContext = createContext<GameContextType | null>(null);
+const GameContext = createContext<GameContextProps | undefined>(undefined);
 
 export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [gameState, setGameState] = useState<GameState>({
-    score: 0,
-    isPlaying: false,
-    isPaused: false,
-    difficulty: 'medium',
-    snake: createInitialSnake(),
-    food: { x: 0, y: 0 },
-    highScore: parseInt(localStorage.getItem('snakeHighScore') || '0')
-  });
+  const [board, setBoard] = useState<GameState[][]>(createBoard());
+  const [snake, setSnake] = useState<Position[]>([{ x: 10, y: 10 }]);
+  const [food, setFood] = useState<Position>({ x: 5, y: 5 });
+  const [direction, setDirection] = useState<Direction>(Direction.Right);
+  const [score, setScore] = useState(0);
+  const [highScore, setHighScore] = useState(0);
+  const [gameStarted, setGameStarted] = useState(false);
+  const [gamePaused, setGamePaused] = useState(false);
+  const [gameOver, setGameOver] = useState(false);
 
-  const startGame = useCallback(() => {
-    const initialSnake = createInitialSnake();
-    setGameState(prev => ({
-      ...prev,
-      isPlaying: true,
-      isPaused: false,
-      score: 0,
-      snake: initialSnake,
-      food: generateFood(initialSnake)
-    }));
-  }, []);
-
-  const pauseGame = useCallback(() => {
-    setGameState(prev => ({
-      ...prev,
-      isPaused: !prev.isPaused
-    }));
-  }, []);
-
-  const endGame = useCallback(() => {
-    setGameState(prev => {
-      const newHighScore = prev.score > prev.highScore ? prev.score : prev.highScore;
-      localStorage.setItem('snakeHighScore', newHighScore.toString());
-      return {
-        ...prev,
-        isPlaying: false,
-        highScore: newHighScore
+  const generateFood = useCallback(() => {
+    let newFood: Position;
+    do {
+      newFood = {
+        x: Math.floor(Math.random() * 20),
+        y: Math.floor(Math.random() * 20),
       };
+    } while (snake.some(segment => segment.x === newFood.x && segment.y === newFood.y));
+    setFood(newFood);
+  }, [snake]);
+
+  const updateBoard = useCallback(() => {
+    const newBoard = createBoard();
+    snake.forEach(segment => {
+      newBoard[segment.y][segment.x] = "snake";
     });
-  }, []);
+    newBoard[food.y][food.x] = "food";
+    setBoard(newBoard);
+  }, [snake, food]);
 
-  const setDifficulty = useCallback((difficulty: GameState['difficulty']) => {
-    setGameState(prev => ({
-      ...prev,
-      difficulty
-    }));
-  }, []);
+  const moveSnake = useCallback(() => {
+    if (gamePaused || gameOver || !gameStarted) return;
 
-  const setDirection = useCallback((direction: Snake['direction']) => {
-    setGameState(prev => ({
-      ...prev,
-      snake: {
-        ...prev.snake,
-        direction
+    const newHead = getNextHeadPosition(snake[0], direction);
+
+    if (!isValidMove(newHead) || hasSnakeCollided(newHead, snake.slice(1))) {
+      setGameOver(true);
+      setGameStarted(false);
+      if (score > highScore) {
+        setHighScore(score);
       }
-    }));
-  }, []);
+      return;
+    }
 
-  const updateGame = useCallback(() => {
-    if (!gameState.isPlaying || gameState.isPaused) return;
+    const newSnake = [newHead, ...snake];
+    if (newHead.x === food.x && newHead.y === food.y) {
+      setScore(prev => prev + 1);
+      generateFood();
+    } else {
+      newSnake.pop();
+    }
+    setSnake(newSnake);
+  }, [direction, snake, food, gamePaused, gameOver, gameStarted, score, highScore, generateFood]);
 
-    setGameState(prev => {
-      const newSnakeBody = moveSnake(prev.snake);
-      const newSnake = { ...prev.snake, body: newSnakeBody };
+  useEffect(() => {
+    updateBoard();
+  }, [snake, food, updateBoard]);
 
-      if (checkCollision(newSnake)) {
-        const newHighScore = prev.score > prev.highScore ? prev.score : prev.highScore;
-        localStorage.setItem('snakeHighScore', newHighScore.toString());
-        return {
-          ...prev,
-          isPlaying: false,
-          highScore: newHighScore
-        };
-      }
+  useEffect(() => {
+    if (gameStarted && !gamePaused && !gameOver) {
+      const gameInterval = setInterval(moveSnake, 150);
+      return () => clearInterval(gameInterval);
+    }
+  }, [gameStarted, gamePaused, gameOver, moveSnake]);
 
-      if (hasEatenFood(newSnake, prev.food)) {
-        return {
-          ...prev,
-          score: prev.score + 10,
-          snake: {
-            ...newSnake,
-            body: [...newSnakeBody, prev.snake.body[prev.snake.body.length - 1]]
-          },
-          food: generateFood(newSnake)
-        };
-      }
+  const startGame = () => {
+    if (gameOver) {
+      resetGame();
+    }
+    setGameStarted(true);
+    setGamePaused(false);
+  };
 
-      return { ...prev, snake: newSnake };
-    });
-  }, [gameState.isPlaying, gameState.isPaused]);
+  const pauseGame = () => {
+    setGamePaused(true);
+  };
+
+  const resetGame = () => {
+    setSnake([{ x: 10, y: 10 }]);
+    setDirection(Direction.Right);
+    setScore(0);
+    setGameOver(false);
+    setGameStarted(false);
+    setGamePaused(false);
+    generateFood();
+  };
+
+  const changeDirection = (newDirection: Direction) => {
+    if (
+      (newDirection === Direction.Up && direction !== Direction.Down) ||
+      (newDirection === Direction.Down && direction !== Direction.Up) ||
+      (newDirection === Direction.Left && direction !== Direction.Right) ||
+      (newDirection === Direction.Right && direction !== Direction.Left)
+    ) {
+      setDirection(newDirection);
+    }
+  };
 
   return (
     <GameContext.Provider
       value={{
-        gameState,
+        board,
+        score,
+        highScore,
+        gameStarted,
+        gamePaused,
+        gameOver,
         startGame,
         pauseGame,
-        endGame,
-        setDifficulty,
-        setDirection,
-        updateGame
+        resetGame,
+        changeDirection,
       }}
     >
       {children}
@@ -135,8 +138,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 export const useGame = () => {
   const context = useContext(GameContext);
-  if (!context) {
-    throw new Error('useGame must be used within a GameProvider');
+  if (context === undefined) {
+    throw new Error("useGame must be used within a GameProvider");
   }
   return context;
 };

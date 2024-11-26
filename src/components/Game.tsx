@@ -1,23 +1,29 @@
-﻿// ... 其他 imports ...
-import { useSwipeControls } from '../hooks/useSwipeControls';
+import React from 'react';
+import styled from 'styled-components';
+import { useGame } from '../context/GameContext';
+import Board from './Board';
+import Controls from './Controls';
+import Score from './Score';
+
+const GameContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 20px;
+`;
 
 const Game: React.FC = () => {
-  const { gameState, updateGame, setDirection } = useGame();
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const { gameOver } = useGame();
 
-  // 添加键盘控制
-  useKeyboard(
-    gameState.isPlaying && !gameState.isPaused,
-    setDirection,
-    gameState.snake.direction
+  return (
+    <GameContainer>
+      <Score />
+      <Board />
+      <Controls />
+      {gameOver && <div>Game Over!</div>}
+    </GameContainer>
   );
-
-  // 添加触摸控制
-  useSwipeControls(
-    gameState.isPlaying && !gameState.isPaused,
-    setDirection,
-    gameState.snake.direction
-  );
-
-  // ... 其余代码保持不变 ...
 };
+
+export default Game;

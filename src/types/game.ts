@@ -1,17 +1,25 @@
-﻿export const GRID_SIZE = 20;
-export const CANVAS_SIZE = 400;
-export const INITIAL_SNAKE_LENGTH = 3;
-
-export type Direction = 'UP' | 'DOWN' | 'LEFT' | 'RIGHT';
+﻿export enum Direction {
+  Up = "UP",
+  Down = "DOWN",
+  Left = "LEFT",
+  Right = "RIGHT"
+}
 
 export interface Position {
   x: number;
   y: number;
 }
 
-export interface Snake {
-  body: Position[];
-  direction: Direction;
+export type GameState = "empty" | "snake" | "food";
+
+export interface GameConfig {
+  boardSize: number;
+  initialSnakePosition: Position;
+  initialDirection: Direction;
+  speed: number;
 }
 
-export type Difficulty = 'easy' | 'medium' | 'hard';
+export interface GameStats {
+  score: number;
+  highScore: number;
+}
