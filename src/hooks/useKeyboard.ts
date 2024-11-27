@@ -1,17 +1,17 @@
-﻿import { useEffect } from 'react';
-import { Direction } from '../types/game';
+﻿import { useEffect } from "react";
+import { Direction } from "../types/game";
 
-const OPPOSITE_DIRECTIONS: Record<Direction, Direction> = {
-  UP: 'DOWN',
-  DOWN: 'UP',
-  LEFT: 'RIGHT',
-  RIGHT: 'LEFT'
+const OPPOSITE_DIRECTION = {
+  [Direction.Up]: Direction.Down,
+  [Direction.Down]: Direction.Up,
+  [Direction.Left]: Direction.Right,
+  [Direction.Right]: Direction.Left
 };
 
 export const useKeyboard = (
-  isPlaying: boolean,
   setDirection: (direction: Direction) => void,
-  currentDirection: Direction
+  currentDirection: Direction | null,
+  isPlaying: boolean
 ) => {
   useEffect(() => {
     const handleKeyPress = (event: KeyboardEvent) => {
@@ -20,34 +20,30 @@ export const useKeyboard = (
       let newDirection: Direction | null = null;
 
       switch (event.key) {
-        case 'ArrowUp':
-        case 'w':
-        case 'W':
-          newDirection = 'UP';
+        case "ArrowUp":
+          newDirection = Direction.Up;
           break;
-        case 'ArrowDown':
-        case 's':
-        case 'S':
-          newDirection = 'DOWN';
+        case "ArrowDown":
+          newDirection = Direction.Down;
           break;
-        case 'ArrowLeft':
-        case 'a':
-        case 'A':
-          newDirection = 'LEFT';
+        case "ArrowLeft":
+          newDirection = Direction.Left;
           break;
-        case 'ArrowRight':
-        case 'd':
-        case 'D':
-          newDirection = 'RIGHT';
+        case "ArrowRight":
+          newDirection = Direction.Right;
           break;
       }
 
-      if (newDirection && OPPOSITE_DIRECTIONS[newDirection] !== currentDirection) {
+      if (
+        newDirection &&
+        currentDirection &&
+        OPPOSITE_DIRECTION[newDirection] !== currentDirection
+      ) {
         setDirection(newDirection);
       }
     };
 
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [isPlaying, setDirection, currentDirection]);
+    window.addEventListener("keydown", handleKeyPress);
+    return () => window.removeEventListener("keydown", handleKeyPress);
+  }, [setDirection, currentDirection, isPlaying]);
 };

@@ -1,75 +1,61 @@
-﻿import React from 'react';
-import styled from 'styled-components';
-import { useGame } from '../context/GameContext';
+﻿import React from "react";
+import styled from "styled-components";
+import { useGame } from "../context/GameContext";
 
 const ControlsContainer = styled.div`
   display: flex;
+  gap: 10px;
+  margin-top: 20px;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
 `;
 
 const Button = styled.button`
   padding: 10px 20px;
   font-size: 16px;
-  border: none;
-  border-radius: 5px;
   cursor: pointer;
-  background-color: #3498db;
+  background-color: #4CAF50;
   color: white;
-  transition: background-color 0.3s;
+  border: none;
+  border-radius: 4px;
 
   &:hover {
-    background-color: #2980b9;
+    background-color: #45a049;
   }
 
   &:disabled {
-    background-color: #bdc3c7;
+    background-color: #cccccc;
     cursor: not-allowed;
   }
 `;
 
-const Score = styled.div`
-  font-size: 24px;
-  font-weight: bold;
-  margin: 10px 0;
-`;
-
-const DifficultySelect = styled.select`
+const Select = styled.select`
   padding: 8px;
   font-size: 16px;
-  border-radius: 5px;
-  margin: 10px 0;
+  border-radius: 4px;
+  margin-top: 10px;
 `;
 
 const GameControls: React.FC = () => {
-  const { gameState, startGame, pauseGame, setDifficulty } = useGame();
+  const { gameStarted, gamePaused, startGame, pauseGame, resetGame } = useGame();
 
   return (
     <ControlsContainer>
-      <Score>分数: {gameState.score}</Score>
-      {gameState.highScore > 0 && (
-        <Score>最高分: {gameState.highScore}</Score>
-      )}
-      
-      {!gameState.isPlaying ? (
-        <>
-          <DifficultySelect
-            value={gameState.difficulty}
-            onChange={(e) => setDifficulty(e.target.value as any)}
-            disabled={gameState.isPlaying}
-          >
-            <option value="easy">简单</option>
-            <option value="medium">中等</option>
-            <option value="hard">困难</option>
-          </DifficultySelect>
-          <Button onClick={startGame}>开始游戏</Button>
-        </>
+      {!gameStarted ? (
+        <Button onClick={startGame}>Start Game</Button>
       ) : (
-        <Button onClick={pauseGame}>
-          {gameState.isPaused ? '继续' : '暂停'}
-        </Button>
+        <>
+          <Button onClick={gamePaused ? startGame : pauseGame}>
+            {gamePaused ? "Resume" : "Pause"}
+          </Button>
+          <Button onClick={resetGame}>Reset</Button>
+        </>
       )}
+      <Select onChange={(e) => console.log(e.target.value)}>
+        <option value="easy">Easy</option>
+        <option value="medium">Medium</option>
+        <option value="hard">Hard</option>
+      </Select>
     </ControlsContainer>
   );
 };

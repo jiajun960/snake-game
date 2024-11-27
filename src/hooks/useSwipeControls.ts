@@ -1,65 +1,56 @@
-﻿import { useEffect } from 'react';
-import { Direction } from '../types/game';
+﻿import { useEffect, useState } from "react";
+import { Direction } from "../types/game";
+
+interface TouchPosition {
+  x: number;
+  y: number;
+}
 
 export const useSwipeControls = (
-  isPlaying: boolean,
   setDirection: (direction: Direction) => void,
-  currentDirection: Direction
+  isPlaying: boolean
 ) => {
-  useEffect(() => {
-    let touchStartX = 0;
-    let touchStartY = 0;
+  const [touchStart, setTouchStart] = useState<TouchPosition | null>(null);
 
+  useEffect(() => {
     const handleTouchStart = (e: TouchEvent) => {
-      touchStartX = e.touches[0].clientX;
-      touchStartY = e.touches[0].clientY;
+      const touch = e.touches[0];
+      setTouchStart({
+        x: touch.clientX,
+        y: touch.clientY,
+      });
     };
 
     const handleTouchMove = (e: TouchEvent) => {
-      if (!isPlaying) return;
+      if (!touchStart || !isPlaying) return;
 
-      e.preventDefault();
-      
-      const touchEndX = e.touches[0].clientX;
-      const touchEndY = e.touches[0].clientY;
-      
-      const deltaX = touchEndX - touchStartX;
-      const deltaY = touchEndY - touchStartY;
-      
-      // 需要有足够的滑动距离才触发方向改变
-      const minSwipeDistance = 30;
-      
+      const touch = e.touches[0];
+      const deltaX = touch.clientX - touchStart.x;
+      const deltaY = touch.clientY - touchStart.y;
+
       if (Math.abs(deltaX) > Math.abs(deltaY)) {
-        // 水平滑动
-        if (Math.abs(deltaX) > minSwipeDistance) {
-          const newDirection = deltaX > 0 ? 'RIGHT' : 'LEFT';
-          if (
-            (newDirection === 'RIGHT' && currentDirection !== 'LEFT') ||
-            (newDirection === 'LEFT' && currentDirection !== 'RIGHT')
-          ) {
-            setDirection(newDirection);
-          }
+        // Horizontal swipe
+        if (Math.abs(deltaX) > 30) {
+          const newDirection = deltaX > 0 ? Direction.Right : Direction.Left;
+          setDirection(newDirection);
+          setTouchStart(null);
         }
       } else {
-        // 垂直滑动
-        if (Math.abs(deltaY) > minSwipeDistance) {
-          const newDirection = deltaY > 0 ? 'DOWN' : 'UP';
-          if (
-            (newDirection === 'DOWN' && currentDirection !== 'UP') ||
-            (newDirection === 'UP' && currentDirection !== 'DOWN')
-          ) {
-            setDirection(newDirection);
-          }
+        // Vertical swipe
+        if (Math.abs(deltaY) > 30) {
+          const newDirection = deltaY > 0 ? Direction.Down : Direction.Up;
+          setDirection(newDirection);
+          setTouchStart(null);
         }
       }
     };
 
-    document.addEventListener('touchstart', handleTouchStart);
-    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    window.addEventListener("touchstart", handleTouchStart);
+    window.addEventListener("touchmove", handleTouchMove);
 
     return () => {
-      document.removeEventListener('touchstart', handleTouchStart);
-      document.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener("touchstart", handleTouchStart);
+      window.removeEventListener("touchmove", handleTouchMove);
     };
-  }, [isPlaying, setDirection, currentDirection]);
+  }, [touchStart, setDirection, isPlaying]);
 };

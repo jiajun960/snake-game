@@ -5,21 +5,28 @@
   Right = "RIGHT"
 }
 
+export type GameState = "empty" | "snake" | "food";
+
 export interface Position {
   x: number;
   y: number;
 }
 
-export type GameState = "empty" | "snake" | "food";
-
-export interface GameConfig {
-  boardSize: number;
-  initialSnakePosition: Position;
-  initialDirection: Direction;
-  speed: number;
-}
-
-export interface GameStats {
+export interface GameContextProps {
+  board: GameState[][];
   score: number;
   highScore: number;
+  gameStarted: boolean;
+  gamePaused: boolean;
+  gameOver: boolean;
+  startGame: () => void;
+  pauseGame: () => void;
+  resetGame: () => void;
+  changeDirection: (direction: Direction) => void;
+  gameState: {
+    isPlaying: boolean;
+    isPaused: boolean;
+    isGameOver: boolean;
+  };
+  setDifficulty: (level: string) => void;
 }
